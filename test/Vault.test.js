@@ -91,6 +91,31 @@ describe("Vault", function () {
     // vault deve estar vazio após emergencyWithdraw
     expect(await vault.balances(owner.address)).to.equal(0);
   });
+
+  it("enforces maxWithdrawal limit", async function () {
+    const { vault, owner, alice } = await deployVault();
+    await vault.connect(alice).deposit({ value: ethers.parseEther("10") });
+
+    // default: unlimited (type(uint256).max)
+    await expect(
+      vault.connect(alice).withdraw(ethers.parseEther("5"))
+    ).to.not.be.reverted;
+
+    // set limit to 2 ETH
+    await vault.connect(owner).setMaxWithdrawal(ethers.parseEther("2"));
+
+    // within limit: ok
+    await expect(
+      vault.connect(alice).withdraw(ethers.parseEther("2"))
+    ).to.not.be.reverted;
+
+    // exceeds limit: reverts with custom error
+    await expect(
+      vault.connect(alice).withdraw(ethers.parseEther("3"))
+    ).to.be.revertedWithCustomError(vault, "ExceedsWithdrawalLimit");
+  });
+
+  
 });
 
 

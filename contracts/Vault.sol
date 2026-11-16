@@ -6,11 +6,15 @@ pragma solidity ^0.8.24;
 ///         the contract owner can perform a couple of administrative actions.
 contract Vault {
     address public owner;
+    uint256 public maxWithdrawal = type(uint256).max;
     mapping(address => uint256) public balances;
 
     // Events
     event Deposited(address indexed user, uint256 amount, uint256 newBalance);
     event Withdrawn(address indexed user, uint256 amount, uint256 newBalance);
+
+    // Errors
+    error ExceedsWithdrawalLimit(uint256 requested, uint256 limit);
 
     constructor() {
         owner = msg.sender;
@@ -22,10 +26,21 @@ contract Vault {
         emit Deposited(msg.sender, msg.value, balances[msg.sender]);
     }
 
+    // @notice Set the per-transaction withdrawal limit. 0 = unlimited.
+    function setMaxWithdrawal(uint256 newLimit) external {
+        require(msg.sender == owner, "Not owner");
+        maxWithdrawal = newLimit;
+    }
+
     /// @notice Withdraw `amount` ETH from the caller's balance.
     function withdraw(uint256 amount) external {
         uint256 currentBalance = balances[msg.sender];
         require(amount <= currentBalance, "Insufficient balance"); // need verify current balance
+
+        // less gas
+        if (maxWithdrawal > 0 && amount > maxWithdrawal) {
+            revert ExceedsWithdrawalLimit(amount, maxWithdrawal);
+        }
 
         // the  balance need to be updated before contract transference
         // this prevents re-entrancy attacks where a lot of calls could be made at the same time

@@ -15,3 +15,14 @@ The fourth bug was emergencyWithdraw access control
 - fix by requiring msg.sender == owner
 
 This ensures only the actual owner can trigger emergency withdrawals, preventing unauthorized users from accessing the vault's funds.
+
+
+For the maxWithdrawal limit feature:
+I used a conditional with custom error handling to revert if the withdrawal amount exceeds the set limit. 
+```
+if (maxWithdrawal > 0 && amount > maxWithdrawal) {
+    revert ExceedsWithdrawalLimit(amount, maxWithdrawal);
+}
+```
+My objective was show a different approach than using require statements for error handling and
+also this way burn less gas than require with static strings.
