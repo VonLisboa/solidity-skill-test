@@ -25,7 +25,7 @@ describe("Vault", function () {
   // - emergencyWithdraw can only be called by the owner
   // - any Part 2 features you implement (events, withdrawal limit, pause, ownership transfer flow, etc.)
 
-  // 1. Reentrância: MaliciousVault não consegue drenar além do saldo
+  // 1. reentrancy: MaliciousVault can't drain more than total balance 
   it("blocks reentrancy — attacker cannot drain more than deposited", async function () {
     const MaliciousVault = await ethers.getContractFactory("MaliciousVault");
     const { 
@@ -35,19 +35,19 @@ describe("Vault", function () {
     } = await deployVault();
     const malicious = await MaliciousVault.deploy(vault.getAddress());
 
-    // fundo de alice added no vault para que a reentrância tenha algo a drenar
+    // alice amount added to vault so the test can check that reentrancy has something to drain
     await vault.connect(alice).deposit({ value: ethers.parseEther("10") });
 
-    // atacante bob utiliza um contrato malicioso para atacar o vault e retirar todo o saldo
+    // attacker uses a malicious contract to drain the vault
     await malicious.connect(attacker).attack({ value: ethers.parseEther("1") });
 
     const vaultBalance = await ethers.provider.getBalance(vault.getAddress());
-    // se vulnerável, vaultBalance < 10 ETH (drain ocorreu)
-    // se protegido, vaultBalance == 10 ETH (apenas o depósito do atacante foi sacado)
+    // if vulnerable, vaultBalance < 10 ETH (drained)
+    // if protected, vaultBalance == 10 ETH (just the balance of the attacker was drained)
     expect(vaultBalance).to.equal(ethers.parseEther("10"));
   });
 
-  // 2. Saque maior que o saldo falha com revert
+  // 2. Cannot withdraw more than balance, fails with revert
   it("reverts when withdrawing more than balance", async function () {
     const { vault, alice } = await deployVault();
     await vault.connect(alice).deposit(
@@ -58,4 +58,21 @@ describe("Vault", function () {
       vault.connect(alice).withdraw(ethers.parseEther("2"))
     ).to.be.revertedWith("Insufficient balance");
   });
+
+   // 3. Ownership: apenas o owner real pode alterar (não via tx.origin)
+  it("only real owner can change ownership", async function () {
+    const { vault, owner, alice } = await deployVault();
+    
+    // alice (não-owner) tenta
+    await expect(
+      vault.connect(alice).setOwner(alice.address)
+    ).to.be.revertedWith("Not owner");
+    
+    // owner real consegue
+    await vault.connect(owner).setOwner(alice.address);
+
+    expect(await vault.owner()).to.equal(alice.address);
+  });
 });
+
+

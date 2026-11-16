@@ -34,7 +34,7 @@ contract Vault {
 
     /// @notice Transfer ownership of the vault to a new address.
     function setOwner(address newOwner) external {
-        require(tx.origin == owner, "Not owner");
+        require(msg.sender == owner, "Not owner");
         owner = newOwner;
     }
 
