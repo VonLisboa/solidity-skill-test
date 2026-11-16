@@ -8,6 +8,10 @@ contract Vault {
     address public owner;
     mapping(address => uint256) public balances;
 
+    // Events
+    event Deposited(address indexed user, uint256 amount, uint256 newBalance);
+    event Withdrawn(address indexed user, uint256 amount, uint256 newBalance);
+
     constructor() {
         owner = msg.sender;
     }
@@ -15,6 +19,7 @@ contract Vault {
     /// @notice Deposit ETH into the caller's balance.
     function deposit() external payable {
         balances[msg.sender] += msg.value;
+        emit Deposited(msg.sender, msg.value, balances[msg.sender]);
     }
 
     /// @notice Withdraw `amount` ETH from the caller's balance.
@@ -30,6 +35,8 @@ contract Vault {
 
         (bool success, ) = msg.sender.call{value: amount}("");
         require(success, "Transfer failed");
+
+        emit Withdrawn(msg.sender, amount, balances[msg.sender]);
     }
 
     /// @notice Transfer ownership of the vault to a new address.
