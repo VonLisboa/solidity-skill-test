@@ -10,3 +10,8 @@ The third bug was tx.origin phishing
 - fix by using msg.sender instead of tx.origin for ownership checks because tx.origin can be spoofed by a malicious contract 
 
 The tx.origin is the address that initiated the original transaction, while msg.sender is the direct caller of the function. This allows a malicious contract to call setOwner or emergencyWithdraw on behalf of the owner, bypassing the ownership check.
+
+The fourth bug was emergencyWithdraw access control 
+- fix by requiring msg.sender == owner
+
+This ensures only the actual owner can trigger emergency withdrawals, preventing unauthorized users from accessing the vault's funds.

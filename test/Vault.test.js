@@ -73,6 +73,24 @@ describe("Vault", function () {
 
     expect(await vault.owner()).to.equal(alice.address);
   });
+
+  // 4. emergencyWithdraw: apenas owner
+  it("only owner can emergencyWithdraw", async function () {
+    const { vault, owner, alice } = await deployVault();
+    
+    await vault.connect(alice).deposit({ value: ethers.parseEther("1") });
+    
+    // alice não pode
+    await expect(
+      vault.connect(alice).emergencyWithdraw()
+    ).to.be.revertedWith("Not owner");
+    
+    // owner pode
+    await vault.connect(owner).emergencyWithdraw();
+    
+    // vault deve estar vazio após emergencyWithdraw
+    expect(await vault.balances(owner.address)).to.equal(0);
+  });
 });
 
 
