@@ -22,12 +22,14 @@ contract Vault {
         uint256 currentBalance = balances[msg.sender];
         require(amount <= currentBalance, "Insufficient balance"); // need verify current balance
 
-        (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Transfer failed");
-
+        // the  balance need to be updated before contract transference
+        // this prevents re-entrancy attacks where a lot of calls could be made at the same time
         unchecked {
             balances[msg.sender] = currentBalance - amount;
         }
+
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
     }
 
     /// @notice Transfer ownership of the vault to a new address.
