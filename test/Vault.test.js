@@ -115,7 +115,16 @@ describe("Vault", function () {
     ).to.be.revertedWithCustomError(vault, "ExceedsWithdrawalLimit");
   });
 
-  
+  it("only owner can set maxWithdrawal", async function () {
+    const { vault, owner, alice } = await deployVault();
+
+    await expect(
+      vault.connect(alice).setMaxWithdrawal(ethers.parseEther("1"))
+    ).to.be.revertedWith("Not owner");
+
+    await expect(vault.connect(owner).setMaxWithdrawal(ethers.parseEther("1"))).to.not.be.reverted;
+    expect(await vault.maxWithdrawal()).to.equal(ethers.parseEther("1"));
+  });
 });
 
 
