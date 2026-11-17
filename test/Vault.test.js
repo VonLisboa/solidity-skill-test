@@ -60,21 +60,6 @@ describe("Vault", function () {
     ).to.be.revertedWith("Insufficient balance");
   });
 
-   // 3. Ownership: apenas o owner real pode alterar (não via tx.origin)
-  it("only real owner can change ownership", async function () {
-    const { vault, owner, alice } = await deployVault();
-    
-    // alice (não-owner) tenta
-    await expect(
-      vault.connect(alice).setOwner(alice.address)
-    ).to.be.revertedWith("Not owner");
-    
-    // owner real consegue
-    await vault.connect(owner).setOwner(alice.address);
-
-    expect(await vault.owner()).to.equal(alice.address);
-  });
-
 
   // 4. emergencyWithdraw: apenas owner
   it("only owner can emergencyWithdraw", async function () {
@@ -206,6 +191,31 @@ describe("Vault", function () {
     await vault.connect(owner).pause();
     expect(await vault.paused()).to.equal(true);
   });
+
+
+  it("two-step ownership transfer", async function () {
+    const { vault, owner, alice, bob } = await deployVault();
+
+    // just owner can init transfer
+    await expect(
+      vault.connect(alice).transferOwnership(alice.address)
+    ).to.be.reverted;
+
+    // owner init transfer (step 1)
+    await vault.connect(owner).transferOwnership(alice.address);
+
+    // owner not changed yet; alice is setted as pendingOwner
+    expect(await vault.owner()).to.equal(owner.address);
+    expect(await vault.pendingOwner()).to.equal(alice.address);
+
+    // bob can't accept because he isn't a pendingOwner
+    await expect(vault.connect(bob).acceptOwnership()).to.be.reverted;
+
+    // alice accepts (step 2)
+    await vault.connect(alice).acceptOwnership();
+
+    expect(await vault.owner()).to.equal(alice.address);
+    expect(await vault.pendingOwner()).to.equal(ethers.ZeroAddress);
+  });
+  
 });
-
-

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title Skill Test — Vault
 /// @notice A simple ETH vault. Users deposit and withdraw their own funds;
 ///         the contract owner can perform a couple of administrative actions.
-contract Vault {
-    address public owner;
+contract Vault is Ownable2Step, ReentrancyGuard {
     bool public paused;
     uint256 public maxWithdrawal = type(uint256).max;
     mapping(address => uint256) public balances;
@@ -17,8 +18,8 @@ contract Vault {
     // Errors
     error ExceedsWithdrawalLimit(uint256 requested, uint256 limit);
 
-    constructor() {
-        owner = msg.sender;
+    constructor() Ownable(msg.sender) {
+        //the constructor of the Ownable inheriting from Ownable2Step sets the owner internally
     }
 
     modifier whenNotPaused() {
@@ -34,12 +35,12 @@ contract Vault {
 
     // @notice Set the per-transaction withdrawal limit. 0 = unlimited.
     function setMaxWithdrawal(uint256 newLimit) external {
-        require(msg.sender == owner, "Not owner");
+        require(msg.sender == owner(), "Not owner");
         maxWithdrawal = newLimit;
     }
 
     /// @notice Withdraw `amount` ETH from the caller's balance.
-    function withdraw(uint256 amount) external payable whenNotPaused {
+    function withdraw(uint256 amount) external payable whenNotPaused nonReentrant {
         uint256 currentBalance = balances[msg.sender];
         require(amount <= currentBalance, "Insufficient balance"); // need verify current balance
 
@@ -60,28 +61,23 @@ contract Vault {
         emit Withdrawn(msg.sender, amount, balances[msg.sender]);
     }
 
-    /// @notice Transfer ownership of the vault to a new address.
-    function setOwner(address newOwner) external {
-        require(msg.sender == owner, "Not owner");
-        owner = newOwner;
-    }
 
     /// @notice Sweep the entire contract balance to the owner. Intended as a
     ///         break-glass recovery mechanism.
     function emergencyWithdraw() external {
-        require(msg.sender == owner, "Not owner");
-        payable(owner).transfer(address(this).balance);
+        require(msg.sender == owner(), "Not owner");
+        payable(owner()).transfer(address(this).balance);
     }
 
     /// @notice Pause deposits and withdrawals. Only callable by the owner.
     function pause() external {
-        require(msg.sender == owner, "Not owner");
+        require(msg.sender == owner(), "Not owner");
         paused = true;
     }
 
     /// @notice Unpause deposits and withdrawals. Only callable by the owner.
     function unpause() external {
-        require(msg.sender == owner, "Not owner");
+        require(msg.sender == owner(), "Not owner");
         paused = false;
     }
 
