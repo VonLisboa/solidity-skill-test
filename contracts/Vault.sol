@@ -6,6 +6,7 @@ pragma solidity ^0.8.24;
 ///         the contract owner can perform a couple of administrative actions.
 contract Vault {
     address public owner;
+    bool public paused;
     uint256 public maxWithdrawal = type(uint256).max;
     mapping(address => uint256) public balances;
 
@@ -20,8 +21,13 @@ contract Vault {
         owner = msg.sender;
     }
 
+    modifier whenNotPaused() {
+        require(!paused, "Contract is paused");
+        _;
+    }
+
     /// @notice Deposit ETH into the caller's balance.
-    function deposit() external payable {
+    function deposit() external payable whenNotPaused {
         balances[msg.sender] += msg.value;
         emit Deposited(msg.sender, msg.value, balances[msg.sender]);
     }
@@ -66,4 +72,17 @@ contract Vault {
         require(msg.sender == owner, "Not owner");
         payable(owner).transfer(address(this).balance);
     }
+
+    /// @notice Pause deposits and withdrawals. Only callable by the owner.
+    function pause() external {
+        require(msg.sender == owner, "Not owner");
+        paused = true;
+    }
+
+    /// @notice Unpause deposits and withdrawals. Only callable by the owner.
+    function unpause() external {
+        require(msg.sender == owner, "Not owner");
+        paused = false;
+    }
+
 }

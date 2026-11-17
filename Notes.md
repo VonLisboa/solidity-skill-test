@@ -26,3 +26,8 @@ if (maxWithdrawal > 0 && amount > maxWithdrawal) {
 ```
 My objective was show a different approach than using require statements for error handling and
 also this way burn less gas than require with static strings.
+
+
+For the feature pause/unpause I have used modifier resource just to show another 
+way of implementation besides using require() or conditional within each function.
+

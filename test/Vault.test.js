@@ -47,6 +47,7 @@ describe("Vault", function () {
     expect(vaultBalance).to.equal(ethers.parseEther("10"));
   });
 
+
   // 2. Cannot withdraw more than balance, fails with revert
   it("reverts when withdrawing more than balance", async function () {
     const { vault, alice } = await deployVault();
@@ -74,6 +75,7 @@ describe("Vault", function () {
     expect(await vault.owner()).to.equal(alice.address);
   });
 
+
   // 4. emergencyWithdraw: apenas owner
   it("only owner can emergencyWithdraw", async function () {
     const { vault, owner, alice } = await deployVault();
@@ -91,6 +93,7 @@ describe("Vault", function () {
     // vault deve estar vazio após emergencyWithdraw
     expect(await vault.balances(owner.address)).to.equal(0);
   });
+
 
   it("enforces maxWithdrawal limit", async function () {
     const { vault, owner, alice } = await deployVault();
@@ -124,6 +127,84 @@ describe("Vault", function () {
 
     await expect(vault.connect(owner).setMaxWithdrawal(ethers.parseEther("1"))).to.not.be.reverted;
     expect(await vault.maxWithdrawal()).to.equal(ethers.parseEther("1"));
+  });
+
+
+  it("only owner can pause", async function () {
+    const { vault, owner, alice } = await deployVault();
+
+    // alice can't pause
+    await expect(
+      vault.connect(alice).pause()
+    ).to.be.revertedWith("Not owner");
+
+    // owner pause wiht success
+    await expect(vault.connect(owner).pause()).to.not.be.reverted;
+    expect(await vault.paused()).to.equal(true);
+  });
+  it("only owner can unpause", async function () {
+    const { vault, owner, alice } = await deployVault();
+    await vault.connect(owner).pause();
+    await expect(
+      vault.connect(alice).unpause()
+    ).to.be.revertedWith("Not owner");
+    await expect(vault.connect(owner).unpause()).to.not.be.reverted;
+    expect(await vault.paused()).to.equal(false);
+  });
+
+
+  it("deposit is blocked while paused", async function () {
+    const { vault, owner, alice } = await deployVault();
+
+    await vault.connect(owner).pause();
+
+    await expect(
+      vault.connect(alice).deposit({ value: ethers.parseEther("1") })
+    ).to.be.revertedWith("Contract is paused");
+  });
+  it("withdraw is blocked while paused", async function () {
+    const { vault, owner, alice } = await deployVault();
+
+    await vault.connect(alice).deposit({ value: ethers.parseEther("1") });
+    await vault.connect(owner).pause();
+
+    await expect(
+      vault.connect(alice).withdraw(ethers.parseEther("1"))
+    ).to.be.revertedWith("Contract is paused");
+  });
+
+  it("deposit and withdraw work again after unpause", async function () {
+    const { vault, owner, alice } = await deployVault();
+
+    // pause
+    await vault.connect(owner).pause();
+
+    // unpause
+    await vault.connect(owner).unpause();
+
+    // deposit works normally again
+    await vault.connect(alice).deposit({ value: ethers.parseEther("2") });
+    expect(await vault.balances(alice.address)).to.equal(ethers.parseEther("2"));
+
+    // withdraw works normaly
+    await vault.connect(alice).withdraw(ethers.parseEther("1"));
+    expect(await vault.balances(alice.address)).to.equal(ethers.parseEther("1"));
+  });
+
+
+  it("pause toggles state correctly (pause -> unpause -> pause)", async function () {
+    const { vault, owner } = await deployVault();
+
+    expect(await vault.paused()).to.equal(false);
+
+    await vault.connect(owner).pause();
+    expect(await vault.paused()).to.equal(true);
+
+    await vault.connect(owner).unpause();
+    expect(await vault.paused()).to.equal(false);
+
+    await vault.connect(owner).pause();
+    expect(await vault.paused()).to.equal(true);
   });
 });
 
