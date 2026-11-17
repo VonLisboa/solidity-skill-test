@@ -31,3 +31,4 @@ also this way burn less gas than require with static strings.
 For the feature pause/unpause I have used modifier resource just to show another 
 way of implementation besides using require() or conditional within each function.
 
+The `whenNotPaused` modifier checks the contract's paused state before executing critical functions like `deposit` and `withdraw`, preventing operations when the contract is paused.

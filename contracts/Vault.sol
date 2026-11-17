@@ -39,7 +39,7 @@ contract Vault {
     }
 
     /// @notice Withdraw `amount` ETH from the caller's balance.
-    function withdraw(uint256 amount) external {
+    function withdraw(uint256 amount) external payable whenNotPaused {
         uint256 currentBalance = balances[msg.sender];
         require(amount <= currentBalance, "Insufficient balance"); // need verify current balance
 
