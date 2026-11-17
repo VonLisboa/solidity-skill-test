@@ -32,3 +32,9 @@ For the feature pause/unpause I have used modifier resource just to show another
 way of implementation besides using require() or conditional within each function.
 
 The `whenNotPaused` modifier checks the contract's paused state before executing critical functions like `deposit` and `withdraw`, preventing operations when the contract is paused.
+
+
+Finally, we implemented OpenZeppelin’s `Ownable2Step` to add ownership transfers with extra layer security.
+As a result, the owner is no longer defined as a simple variable; instead, it is managed by the `Ownable2Step` contract, which handles the ownership state internally.
+The `setOwner` function has been removed.
+Also was implemented ReentrancyGuard in withdraw function `nonReentrant`.
